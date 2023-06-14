@@ -1,0 +1,76 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$projectId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$vmName,
+
+    [Parameter(Mandatory = $true)]
+    [string]$imageFamily,
+
+    [Parameter(Mandatory = $true)]
+    [string]$imageProject,
+
+    [Parameter(Mandatory = $true)]
+    [string]$username
+)
+
+# Authenticate with Google Cloud Platform (GCP)
+gcloud auth login
+
+# Prompt for the project ID
+gcloud config set project $projectId
+
+# Get available regions
+$regions = gcloud compute regions list --format="value(name)"
+
+# Prompt for the region
+$region = Read-Host -Prompt "Enter the region for your virtual machine:`n$regions"
+
+# Get available machine types
+$machineTypes = gcloud compute machine-types list --filter="zone:$region" --format="value(name)"
+
+# Prompt for the machine type
+$machineType = Read-Host -Prompt "Enter the machine type for your virtual machine:`n$machineTypes"
+
+gcloud config set compute/region $region
+
+# Create a new virtual machine instance with SSH key
+gcloud compute instances create $vmName `
+    --machine-type $machineType `
+    --image-family $imageFamily `
+    --image-project $imageProject `
+    --boot-disk-size 10GB `
+    --boot-disk-type pd-standard `
+    --tags http-server `
+    --metadata-from-file ssh-keys=$env:USERPROFILE\.ssh\id_rsa.pub `
+    --metadata startup-script='
+        #! /bin/bash
+        apt-get update
+        apt-get install -y apache2 mysql-server php libapache2-mod-php
+
+        # Create the basic webpage
+        echo "<!DOCTYPE html>" > /var/www/html/index.html
+        echo "<html>" >> /var/www/html/index.html
+        echo "<head>" >> /var/www/html/index.html
+        echo "    <title>My Basic Webpage</title>" >> /var/www/html/index.html
+        echo "</head>" >> /var/www/html/index.html
+        echo "<body>" >> /var/www/html/index.html
+        echo "    <h1>Welcome to My Basic Webpage!</h1>" >> /var/www/html/index.html
+        echo "    <p>This is a sample webpage hosted on the LAMP server.</p>" >> /var/www/html/index.html
+        echo "</body>" >> /var/www/html/index.html
+        echo "</html>" >> /var/www/html/index.html
+
+        systemctl enable apache2
+        systemctl enable mysql
+        systemctl start apache2
+        systemctl start mysql
+    '
+
+# Get the public IP address of the virtual machine
+$publicIpAddress = (gcloud compute instances describe $vmName --format="value(networkInterfaces[0].accessConfigs[0].natIP)")
+
+# Output the SSH connection command
+$sshCommand = "ssh $username@$publicIpAddress"
+Write-Host "Your virtual machine is accessible via SSH using the following command:"
+Write-Host $sshCommand
