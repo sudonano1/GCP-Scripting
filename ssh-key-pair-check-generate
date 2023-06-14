@@ -1,0 +1,29 @@
+#This script checks if an SSH key pair already exists in the id_rsa and id_rsa.pub files under the .ssh directory in the user's home directory. If the key pair does not exist, it uses the gcloud compute ssh-keys create command to generate a new key pair and save it to the specified files.
+#To run this script:
+#Open PowerShell or a PowerShell Integrated Scripting Environment (ISE).
+#Make sure you have the Google Cloud SDK installed and authenticated with gcloud auth login.
+#Copy and paste the script into the PowerShell session.
+#Run the script.
+#After running the script, you will have the SSH key pair (id_rsa and id_rsa.pub) generated in the .ssh directory in your user's home directory. You can then use the private key (id_rsa) for SSH authentication and provide the public key (id_rsa.pub) during the virtual machine creation process on Google Cloud Platform.
+#Make sure to replace the placeholders with your actual project ID, instance name, and key name.
+#To run the script:
+#Save the script to a file (e.g., generate_and_add_ssh_key.sh).
+#Make it executable with the command: chmod +x generate_and_add_ssh_key.sh.
+#Run the script with the command: ./generate_and_add_ssh_key.sh.
+#The script will generate an SSH key pair using ssh-keygen and add the public key to the metadata of the specified instance using the gcloud compute instances add-metadata command. It will display a message confirming that the SSH key pair has been generated and added to the instance metadata.
+#Ensure that you have the Google Cloud SDK installed and authenticated with your Google Cloud account before running the script.
+
+
+$sshKeyPath = "$env:USERPROFILE\.ssh\id_rsa"
+
+# Check if SSH key pair already exists
+if (Test-Path $sshKeyPath) {
+    Write-Host "SSH key pair already exists."
+}
+else {
+    # Generate SSH key pair
+    gcloud compute ssh-keys create my-key --key-file=$sshKeyPath
+
+    Write-Host "SSH key pair created successfully."
+}
+
